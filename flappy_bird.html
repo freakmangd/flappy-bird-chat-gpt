@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flappy Bird Clone</title>
+<style>
+    canvas {
+        border: 2px solid black;
+        display: block;
+        margin: 0 auto;
+    }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas" width="600" height="600"></canvas>
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const bird = {
+        x: 50,
+        y: canvas.height / 2,
+        radius: 20,
+        velocity: 0,
+        gravity: 0.1,
+        jumpStrength: 4 // Adjusted jump strength for less height
+    };
+
+    const obstacleWidth = 50;
+    const gapHeight = 150;
+    const obstacleSpeed = 1.5;
+    const minPipeSpacing = 200; // Adjusted minimum pipe spacing
+    const obstacleSpacing = 2000;
+    const obstacles = [];
+
+    let score = 0;
+    let isGameOver = false;
+
+    function drawBird() {
+        ctx.beginPath();
+        ctx.arc(bird.x, bird.y, bird.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'yellow';
+        ctx.fill();
+        ctx.closePath();
+    }
+
+    function drawObstacles() {
+        for (let obstacle of obstacles) {
+            ctx.fillStyle = 'green';
+            ctx.fillRect(obstacle.x, 0, obstacleWidth, obstacle.topHeight);
+            ctx.fillRect(obstacle.x, obstacle.bottomY, obstacleWidth, canvas.height - obstacle.bottomY);
+        }
+    }
+
+    function drawScore() {
+        ctx.font = '30px Arial';
+        ctx.fillStyle = 'black';
+        ctx.fillText(`Score: ${score}`, 10, 30);
+    }
+
+    function updateBird() {
+        bird.velocity += bird.gravity;
+        bird.y += bird.velocity;
+
+        if (bird.y - bird.radius <= 0 || bird.y + bird.radius >= canvas.height) {
+            gameOver();
+        }
+    }
+
+    function updateObstacles() {
+        for (let obstacle of obstacles) {
+            obstacle.x -= obstacleSpeed;
+            
+            if (obstacle.x + obstacleWidth < 0) {
+                obstacles.shift();
+                score++;
+            }
+            
+            if (
+                bird.x + bird.radius > obstacle.x && 
+                bird.x - bird.radius < obstacle.x + obstacleWidth &&
+                (bird.y - bird.radius < obstacle.topHeight || bird.y + bird.radius > obstacle.bottomY)
+            ) {
+                gameOver();
+            }
+        }
+    }
+
+    function gameOver() {
+        isGameOver = true;
+    }
+
+    function restartGame() {
+        isGameOver = false;
+        bird.y = canvas.height / 2;
+        bird.velocity = 0;
+        obstacles.length = 0;
+        score = 0;
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (isGameOver) {
+            ctx.font = '50px Arial';
+            ctx.fillStyle = 'red';
+            ctx.fillText('Game Over', 150, canvas.height / 2);
+            ctx.fillText('Press R To Restart', 100, canvas.height / 2 + 50);
+            ctx.fillText(`Score: ${score}`, 200, canvas.height / 2 + 100);
+            return;
+        }
+
+        drawBird();
+        drawObstacles();
+        drawScore();
+
+        updateBird();
+        updateObstacles();
+
+        requestAnimationFrame(draw);
+    }
+
+    function jump() {
+        if (!isGameOver) {
+            bird.velocity = -bird.jumpStrength;
+        }
+    }
+
+    document.addEventListener('keydown', event => {
+        if (event.code === 'Space') {
+            jump();
+        }
+        if (event.code === 'KeyR' && isGameOver) {
+            restartGame();
+            requestAnimationFrame(draw);
+        }
+    });
+
+    function generateObstacle() {
+        const topHeight = Math.random() * (canvas.height - gapHeight);
+        const bottomY = topHeight + gapHeight;
+        
+        if (obstacles.length === 0 || canvas.width - obstacles[obstacles.length - 1].x >= minPipeSpacing) {
+            obstacles.push({ x: canvas.width, topHeight, bottomY });
+        }
+    }
+
+    setInterval(generateObstacle, obstacleSpacing);
+    draw();
+</script>
+</body>
+</html>
